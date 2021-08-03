@@ -332,7 +332,7 @@ function generateAlert(params) {
     alert.data.office365 = {
       ...log,
       ...ruleData.data.office365,
-      Id: '000',
+      Id: IntraID,
       CreationTime: formatDate(beforeDate, 'Y-M-DTh:m:s.lZ'),
       OrganizationId: OrgID,
       UserType: userType,
