@@ -61,21 +61,6 @@ export const AgentsPreview = compose(
   async componentDidMount() {
     this._isMount = true;
     this.getSummary();
-    if( this.wazuhConfig.getConfig()['wazuh.monitoring.enabled'] ){
-      this._isMount && this.setState({ showAgentsEvolutionVisualization: true });
-      const tabVisualizations = new TabVisualizations();
-      tabVisualizations.removeAll();
-      tabVisualizations.setTab('general');
-      tabVisualizations.assign({
-        general: 1
-      });
-      const filterHandler = new FilterHandler(AppState.getCurrentPattern());
-      await VisFactoryHandler.buildOverviewVisualizations(
-        filterHandler,
-        'general',
-        null
-      );
-    }
   }
 
   componentWillUnmount() {
@@ -109,7 +94,6 @@ export const AgentsPreview = compose(
       this.agentsCoverity = this.totalAgents ? ((this.summary['active'] || 0) / this.totalAgents) * 100 : 0;
       const lastAgent = await WzRequest.apiReq('GET', '/agents', {params: { limit: 1, sort: '-dateAdd', q: 'id!=000' }});
       this.lastAgent = lastAgent.data.data.affected_items[0];
-      this.mostActiveAgent = await this.props.tableProps.getMostActive();
       const osresult = await WzRequest.apiReq('GET', '/agents/summary/os', {});
       this.platforms = this.groupBy(osresult.data.data.affected_items);
       const platformsModel = [];
@@ -251,30 +235,6 @@ export const AgentsPreview = compose(
                             />
                           </EuiFlexItem>
                         )}
-                        {this.mostActiveAgent && (
-                          <EuiFlexItem>
-                            <EuiStat
-                              className={
-                                this.mostActiveAgent.name ? 'euiStatLink' : ''
-                              }
-                              title={
-                                <EuiToolTip
-                                position='top'
-                                content='View agent details'><a onClick={() =>
-                                  this.mostActiveAgent.name
-                                    ? this.props.tableProps.showAgent(
-                                        this.mostActiveAgent
-                                      )
-                                    : ''
-                                }>{this.mostActiveAgent.name || '-'}</a>
-                              </EuiToolTip>}
-                              style={{ whiteSpace: 'nowrap' }}
-                              titleSize="s"
-                              description="Most active agent"
-                              titleColor="primary"                              
-                            />
-                          </EuiFlexItem>
-                        )}
                       </EuiFlexGroup>
                     </EuiFlexItem>
                   </EuiFlexGroup>
@@ -283,43 +243,7 @@ export const AgentsPreview = compose(
             )}
             </Fragment>
             )}
-            {this.state.showAgentsEvolutionVisualization && (
-              <EuiFlexItem grow={false} className="agents-evolution-visualization" style={{ display: !this.state.loading ? 'block' : 'none', height: !this.state.loading ? '182px' : 0}}>
-                <EuiPanel paddingSize="none" betaBadgeLabel="Evolution" style={{ display: this.props.resultState === 'ready' ? 'block' : 'none'}}>
-                  <EuiFlexGroup>
-                    <EuiFlexItem>
-                    <div style={{height: this.props.resultState === 'ready' ? '180px' : 0}}>
-                      <WzReduxProvider>
-                        <KibanaVis
-                          visID={'Wazuh-App-Overview-General-Agents-status'}
-                          tab={'general'}
-                        />
-                      </WzReduxProvider>
-                    </div>
-                    {this.props.resultState === 'loading' &&
-                      (
-                      <div style={{ display: 'block', textAlign: "center", padding: 30}}>                        
-                        <EuiLoadingChart size="xl" />
-                      </div>
-                    ) }
-                      
-                    </EuiFlexItem>
-                  </EuiFlexGroup>                  
-                </EuiPanel>
-                <EuiPanel paddingSize="none" betaBadgeLabel="Evolution" style={{ height: 180,  display: this.props.resultState === 'none' ? 'block' : 'none'}}>
-                  <EuiEmptyPrompt
-                    className="wz-padding-21"
-                    iconType="alert"
-                    titleSize="xs"
-                    title={<h3>No results found in the selected time range</h3>}
-                    actions={
-                      <WzDatePicker condensed={true} onTimeChange={() => { }} />
-                    }
-                  />
-                </EuiPanel>
-              </EuiFlexItem>
-              
-            )}
+           
           </EuiFlexGroup>
           <EuiSpacer size="m" />
             <WzReduxProvider>
