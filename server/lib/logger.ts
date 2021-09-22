@@ -144,7 +144,7 @@ const yyyymmdd = () => {
  * @param {*} message Message to show
  * @param {*} level Optional, default is 'error'
  */
-export function log(location, message, level) {
+export function log(location, message, level = 'error') {
   initDirectory()
     .then(() => {
       if (allowed) {

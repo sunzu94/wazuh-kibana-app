@@ -34,8 +34,8 @@ const checkCluster = (params: { jobObj: { [key: string]: IJob }, host?: IApi }) 
 const checkConfiguration = (params: { jobObj: { [key: string]: IJob }, host?: IApi }) => {
   const {jobObj, host} = params;
   const config = getConfiguration();
-  const cronSettigns = Object.keys(config).filter(checkSetting);
-  cronSettigns.forEach(setting => applySettings(setting, config[setting], jobObj))
+  const cronSettings = Object.keys(config).filter(checkSetting);
+  cronSettings.forEach(setting => applySettings(setting, config[setting], jobObj))
   return { jobObj, host };
 }
 const cronRegx = /cron.(?<task>statistics).((?<index>\w+)\.)?(?<config>\w+)$/;
