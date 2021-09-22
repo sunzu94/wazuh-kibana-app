@@ -6,9 +6,9 @@ All notable changes to the Wazuh app project will be documented in this file.
 
 ### Fix
 
-- Remove Elasticsearch API calls from the agents tab [3614](https://github.com/wazuh/wazuh-kibana-app/issues/3614)
-- Add Wazuh configuration setting to enable/disable statistics cronjob [3615](https://github.com/wazuh/wazuh-kibana-app/issues/3615)
-- Reduce main bucket in summary visualizations [3619](https://github.com/wazuh/wazuh-kibana-app/issues/3619)
+- Remove Elasticsearch API calls from the agents tab [#3614](https://github.com/wazuh/wazuh-kibana-app/issues/3614)
+- Add Wazuh configuration setting to enable/disable statistics cronjob [#3615](https://github.com/wazuh/wazuh-kibana-app/issues/3615)
+- Reduce main bucket in summary visualizations [#3619](https://github.com/wazuh/wazuh-kibana-app/issues/3619)
 
 ### Added
 
