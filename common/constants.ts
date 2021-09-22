@@ -91,6 +91,7 @@ export const WAZUH_CONFIGURATION_CACHE_TIME = 10000 // time in ms;
 export const WAZUH_CONFIGURATION_SETTINGS_NEED_RESTART = [
   'wazuh.monitoring.enabled',
   'wazuh.monitoring.frequency',
+  'cron.statistics.status',
   'cron.statistics.interval',
   'logs.level',
 ];

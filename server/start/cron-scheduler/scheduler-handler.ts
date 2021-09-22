@@ -155,13 +155,13 @@ const checkTemplate = async function (context) {
 export async function jobSchedulerRun(context){
   // Check Kibana index and if it is prepared, start the initialization of Wazuh App.
   initStatisticsConfiguration(context);
-
   if(!STATISTICS_ENABLED) {
     log(
       'scheduler-handler:jobSchedulerRun',
       'Statistics configuration status is false. Skipping job',
       'debug'
     );
+    context.wazuh.logger.info('Statistics configuration status is false. Skipping job');
     return;
   }
 
