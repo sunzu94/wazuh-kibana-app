@@ -23,12 +23,16 @@ import { ManageHosts } from '../lib/manage-hosts';
 import { UpdateRegistry } from '../lib/update-registry';
 import jwtDecode from 'jwt-decode';
 import { KibanaRequest, RequestHandlerContext, KibanaResponseFactory } from 'src/core/server';
-import { APIUserAllowRunAs, CacheInMemoryAPIUserAllowRunAs, API_USER_STATUS_RUN_AS } from '../lib/cache-api-user-has-run-as';
+import {
+  APIUserAllowRunAs,
+  CacheInMemoryAPIUserAllowRunAs,
+  API_USER_STATUS_RUN_AS,
+} from '../lib/cache-api-user-has-run-as';
 import { getCookieValueByName } from '../lib/cookie';
 
 export class WazuhApiCtrl {
-  manageHosts: ManageHosts
-  updateRegistry: UpdateRegistry
+  manageHosts: ManageHosts;
+  updateRegistry: UpdateRegistry;
 
   constructor() {
     // this.monitoringInstance = new Monitoring(server, true);
@@ -36,19 +40,29 @@ export class WazuhApiCtrl {
     this.updateRegistry = new UpdateRegistry();
   }
 
-  async getToken(context: RequestHandlerContext, request: KibanaRequest, response: KibanaResponseFactory) {
+  async getToken(
+    context: RequestHandlerContext,
+    request: KibanaRequest,
+    response: KibanaResponseFactory
+  ) {
     try {
       const { force, idHost } = request.body;
       const { username } = await context.wazuh.security.getCurrentUser(request, context);
-      if (!force && request.headers.cookie && username === getCookieValueByName(request.headers.cookie, 'wz-user') && idHost === getCookieValueByName(request.headers.cookie,'wz-api')) {
+      if (
+        !force &&
+        request.headers.cookie &&
+        username === getCookieValueByName(request.headers.cookie, 'wz-user') &&
+        idHost === getCookieValueByName(request.headers.cookie, 'wz-api')
+      ) {
         const wzToken = getCookieValueByName(request.headers.cookie, 'wz-token');
         if (wzToken) {
-          try { // if the current token is not a valid jwt token we ask for a new one
+          try {
+            // if the current token is not a valid jwt token we ask for a new one
             const decodedToken = jwtDecode(wzToken);
-            const expirationTime = (decodedToken.exp - (Date.now() / 1000));
+            const expirationTime = decodedToken.exp - Date.now() / 1000;
             if (wzToken && expirationTime > 0) {
               return response.ok({
-                body: { token: wzToken }
+                body: { token: wzToken },
               });
             }
           } catch (error) {
@@ -57,14 +71,14 @@ export class WazuhApiCtrl {
         }
       }
       let token;
-      if (await APIUserAllowRunAs.canUse(idHost) == API_USER_STATUS_RUN_AS.ENABLED) {
+      if ((await APIUserAllowRunAs.canUse(idHost)) == API_USER_STATUS_RUN_AS.ENABLED) {
         token = await context.wazuh.api.client.asCurrentUser.authenticate(idHost);
       } else {
         token = await context.wazuh.api.client.asInternalUser.authenticate(idHost);
-      };
+      }
 
-      let textSecure='';
-      if(context.wazuh.server.info.protocol === 'https'){
+      let textSecure = '';
+      if (context.wazuh.server.info.protocol === 'https') {
         textSecure = ';Secure';
       }
 
@@ -76,7 +90,7 @@ export class WazuhApiCtrl {
             `wz-api=${idHost};Path=/;HttpOnly`,
           ],
         },
-        body: { token }
+        body: { token },
       });
     } catch (error) {
       const errorMessage = ((error.response || {}).data || {}).detail || error.message || error;
@@ -97,7 +111,11 @@ export class WazuhApiCtrl {
    * @param {Object} response
    * @returns {Object} status obj or ErrorResponse
    */
-  async checkStoredAPI(context: RequestHandlerContext, request: KibanaRequest, response: KibanaResponseFactory) {
+  async checkStoredAPI(
+    context: RequestHandlerContext,
+    request: KibanaRequest,
+    response: KibanaResponseFactory
+  ) {
     try {
       // Get config from wazuh.yml
       const id = request.body.id;
@@ -197,7 +215,7 @@ export class WazuhApiCtrl {
                 statusCode: 200,
                 data: copied,
                 idChanged: request.body.idChanged || null,
-              }
+              },
             });
           }
         }
@@ -211,14 +229,14 @@ export class WazuhApiCtrl {
           body: {
             statusCode: 200,
             data: { password: '****', apiIsDown: true },
-          }
+          },
         });
       } else if (error.code === 'ECONNREFUSED') {
         return response.ok({
           body: {
             statusCode: 200,
             data: { password: '****', apiIsDown: true },
-          }
+          },
         });
       } else {
         try {
@@ -247,7 +265,7 @@ export class WazuhApiCtrl {
                 request.body.idChanged = id;
                 return await this.checkStoredAPI(context, request, response);
               }
-            } catch (error) { } // eslint-disable-line
+            } catch (error) {} // eslint-disable-line
           }
         } catch (error) {
           log('wazuh-api:checkStoredAPI', error.message || error);
@@ -294,7 +312,11 @@ export class WazuhApiCtrl {
    * @param {Object} response
    * @returns {Object} status obj or ErrorResponse
    */
-  async checkAPI(context: RequestHandlerContext, request: KibanaRequest, response: KibanaResponseFactory) {
+  async checkAPI(
+    context: RequestHandlerContext,
+    request: KibanaRequest,
+    response: KibanaResponseFactory
+  ) {
     try {
       let apiAvailable = null;
       // const notValid = this.validateCheckApiParams(request.body);
@@ -310,17 +332,17 @@ export class WazuhApiCtrl {
       }
       const options = { apiHostID: request.body.id };
       if (request.body.forceRefresh) {
-        options["forceRefresh"] = request.body.forceRefresh;
+        options['forceRefresh'] = request.body.forceRefresh;
       }
       let responseManagerInfo;
-      try{
+      try {
         responseManagerInfo = await context.wazuh.api.client.asInternalUser.request(
           'GET',
           `/manager/info`,
           {},
           options
         );
-      }catch(error){
+      } catch (error) {
         return ErrorResponse(
           `ERROR3099 - ${error.response?.data?.detail || 'Wazuh not ready yet'}`,
           3099,
@@ -359,16 +381,17 @@ export class WazuhApiCtrl {
           if (responseApiUserAllowRunAs.status === 200) {
             const allow_run_as = responseApiUserAllowRunAs.data.data.affected_items[0].allow_run_as;
 
-            if (allow_run_as && apiAvailable && apiAvailable.run_as) // HOST AND USER ENABLED
+            if (allow_run_as && apiAvailable && apiAvailable.run_as)
+              // HOST AND USER ENABLED
               apiUserAllowRunAs = API_USER_STATUS_RUN_AS.ENABLED;
-
-            else if (!allow_run_as && apiAvailable && apiAvailable.run_as)// HOST ENABLED AND USER DISABLED
+            else if (!allow_run_as && apiAvailable && apiAvailable.run_as)
+              // HOST ENABLED AND USER DISABLED
               apiUserAllowRunAs = API_USER_STATUS_RUN_AS.USER_NOT_ALLOWED;
-
-            else if (allow_run_as && ( !apiAvailable || !apiAvailable.run_as )) // USER ENABLED AND HOST DISABLED
+            else if (allow_run_as && (!apiAvailable || !apiAvailable.run_as))
+              // USER ENABLED AND HOST DISABLED
               apiUserAllowRunAs = API_USER_STATUS_RUN_AS.HOST_DISABLED;
-
-            else if (!allow_run_as && ( !apiAvailable || !apiAvailable.run_as )) // HOST AND USER DISABLED
+            else if (!allow_run_as && (!apiAvailable || !apiAvailable.run_as))
+              // HOST AND USER DISABLED
               apiUserAllowRunAs = API_USER_STATUS_RUN_AS.ALL_DISABLED;
           }
           CacheInMemoryAPIUserAllowRunAs.set(
@@ -448,7 +471,7 @@ export class WazuhApiCtrl {
     if (response.status !== 200) {
       // Avoid "Error communicating with socket" like errors
       const socketErrorCodes = [1013, 1014, 1017, 1018, 1019];
-      const status = (response.data || {}).status || 1
+      const status = (response.data || {}).status || 1;
       const isDown = socketErrorCodes.includes(status);
 
       isDown && log('wazuh-api:makeRequest', 'Wazuh API is online but Wazuh is not ready yet');
@@ -553,14 +576,14 @@ export class WazuhApiCtrl {
 
       if (!data) {
         data = {};
-      };
+      }
 
       if (!data.headers) {
         data.headers = {};
-      };
+      }
 
       const options = {
-        apiHostID: id
+        apiHostID: id,
       };
 
       // Set content type application/xml if needed
@@ -583,15 +606,20 @@ export class WazuhApiCtrl {
         addJobToQueue({
           startAt: new Date(Date.now() + delay),
           run: async () => {
-            try{
+            try {
               await context.wazuh.api.client.asCurrentUser.request(method, path, data, options);
-            }catch(error){
-              log('queue:delayApiRequest',`An error ocurred in the delayed request: "${method} ${path}": ${error.message || error}`);
-            };
-          }
+            } catch (error) {
+              log(
+                'queue:delayApiRequest',
+                `An error ocurred in the delayed request: "${method} ${path}": ${
+                  error.message || error
+                }`
+              );
+            }
+          },
         });
         return response.ok({
-          body: { error: 0, message: 'Success' }
+          body: { error: 0, message: 'Success' },
         });
       }
 
@@ -628,7 +656,12 @@ export class WazuhApiCtrl {
           }
         }
       }
-      const responseToken = await context.wazuh.api.client.asCurrentUser.request(method, path, data, options);
+      const responseToken = await context.wazuh.api.client.asCurrentUser.request(
+        method,
+        path,
+        data,
+        options
+      );
       const responseIsDown = this.checkResponseIsDown(responseToken);
       if (responseIsDown) {
         return ErrorResponse(
@@ -651,13 +684,13 @@ export class WazuhApiCtrl {
       if (!responseError && responseBody) {
         //cleanKeys(response);
         return response.ok({
-          body: responseToken.data
+          body: responseToken.data,
         });
       }
 
       if (responseError && devTools) {
         return response.ok({
-          body: response.data
+          body: response.data,
         });
       }
       throw responseError && responseBody.detail
@@ -672,11 +705,11 @@ export class WazuhApiCtrl {
           response
         );
       }
-      const errorMsg = (error.response || {}).data || error.message
+      const errorMsg = (error.response || {}).data || error.message;
       log('wazuh-api:makeRequest', errorMsg || error);
       if (devTools) {
         return response.ok({
-          body: { error: '3013', message: errorMsg || error }
+          body: { error: '3013', message: errorMsg || error },
         });
       } else {
         if ((error || {}).code && ApiErrorEquivalence[error.code]) {
@@ -699,15 +732,15 @@ export class WazuhApiCtrl {
    * @param {Object} response
    * @returns {Object} api response or ErrorResponse
    */
-  requestApi(context: RequestHandlerContext, request: KibanaRequest, response: KibanaResponseFactory) {
+  requestApi(
+    context: RequestHandlerContext,
+    request: KibanaRequest,
+    response: KibanaResponseFactory
+  ) {
     const idApi = getCookieValueByName(request.headers.cookie, 'wz-api');
-    if (idApi !== request.body.id) { // if the current token belongs to a different API id, we relogin to obtain a new token
-      return ErrorResponse(
-        'status code 401',
-        401,
-        401,
-        response
-      );
+    if (idApi !== request.body.id) {
+      // if the current token belongs to a different API id, we relogin to obtain a new token
+      return ErrorResponse('status code 401', 401, 401, response);
     }
     if (!request.body.method) {
       return ErrorResponse('Missing param: method', 3015, 400, response);
@@ -722,7 +755,8 @@ export class WazuhApiCtrl {
       //Path doesn't start with '/'
       return ErrorResponse('Request path is not valid.', 3015, 400, response);
     } else {
-
+      console.log('[SERVER] - make request: ');
+      console.log(request);
       return this.makeRequest(
         context,
         request.body.method,
@@ -741,12 +775,18 @@ export class WazuhApiCtrl {
    * @param {Object} response
    * @returns {Object} csv or ErrorResponse
    */
-  async csv(context: RequestHandlerContext, request: KibanaRequest, response: KibanaResponseFactory) {
+  async csv(
+    context: RequestHandlerContext,
+    request: KibanaRequest,
+    response: KibanaResponseFactory
+  ) {
     try {
       if (!request.body || !request.body.path) throw new Error('Field path is required');
       if (!request.body.id) throw new Error('Field id is required');
 
-      const filters = Array.isArray(((request || {}).body || {}).filters) ? request.body.filters : [];
+      const filters = Array.isArray(((request || {}).body || {}).filters)
+        ? request.body.filters
+        : [];
 
       let tmpPath = request.body.path;
 
@@ -776,7 +816,11 @@ export class WazuhApiCtrl {
         { apiHostID: request.body.id }
       );
 
-      const isList = request.body.path.includes('/lists') && request.body.filters && request.body.filters.length && request.body.filters.find(filter => filter._isCDBList);
+      const isList =
+        request.body.path.includes('/lists') &&
+        request.body.filters &&
+        request.body.filters.length &&
+        request.body.filters.find((filter) => filter._isCDBList);
 
       const totalItems = (((output || {}).data || {}).data || {}).total_affected_items;
 
@@ -797,8 +841,7 @@ export class WazuhApiCtrl {
 
       if (totalItems) {
         const { path, filters } = request.body;
-        const isArrayOfLists =
-          path.includes('/lists') && !isList;
+        const isArrayOfLists = path.includes('/lists') && !isList;
         const isAgents = path.includes('/agents') && !path.includes('groups');
         const isAgentsOfGroup = path.startsWith('/agents/groups/');
         const isFiles = path.endsWith('/files');
@@ -836,7 +879,9 @@ export class WazuhApiCtrl {
           const flatLists = [];
           for (const list of itemsArray) {
             const { relative_dirname, items } = list;
-            flatLists.push(...items.map(item => ({ relative_dirname, key: item.key, value: item.value })));
+            flatLists.push(
+              ...items.map((item) => ({ relative_dirname, key: item.key, value: item.value }))
+            );
           }
           fields = ['relative_dirname', 'key', 'value'];
           itemsArray = [...flatLists];
@@ -846,7 +891,7 @@ export class WazuhApiCtrl {
           fields = ['key', 'value'];
           itemsArray = output.data.data.affected_items[0].items;
         }
-        fields = fields.map(item => ({ value: item, default: '-' }));
+        fields = fields.map((item) => ({ value: item, default: '-' }));
 
         const json2csvParser = new Parser({ fields });
 
@@ -860,12 +905,21 @@ export class WazuhApiCtrl {
 
         return response.ok({
           headers: { 'Content-Type': 'text/csv' },
-          body: csv
+          body: csv,
         });
-      } else if (output && output.data && output.data.data && !output.data.data.total_affected_items) {
+      } else if (
+        output &&
+        output.data &&
+        output.data.data &&
+        !output.data.data.total_affected_items
+      ) {
         throw new Error('No results');
       } else {
-        throw new Error(`An error occurred fetching data from the Wazuh API${output && output.data && output.data.detail ? `: ${output.body.detail}` : ''}`);
+        throw new Error(
+          `An error occurred fetching data from the Wazuh API${
+            output && output.data && output.data.detail ? `: ${output.body.detail}` : ''
+          }`
+        );
       }
     } catch (error) {
       log('wazuh-api:csv', error.message || error);
@@ -874,10 +928,14 @@ export class WazuhApiCtrl {
   }
 
   // Get de list of available requests in the API
-  getRequestList(context: RequestHandlerContext, request: KibanaRequest, response: KibanaResponseFactory) {
+  getRequestList(
+    context: RequestHandlerContext,
+    request: KibanaRequest,
+    response: KibanaResponseFactory
+  ) {
     //Read a static JSON until the api call has implemented
     return response.ok({
-      body: apiRequestList
+      body: apiRequestList,
     });
   }
 
@@ -888,7 +946,11 @@ export class WazuhApiCtrl {
    * @param {Object} response
    * @returns {Object} timestamp field or ErrorResponse
    */
-  getTimeStamp(context: RequestHandlerContext, request: KibanaRequest, response: KibanaResponseFactory) {
+  getTimeStamp(
+    context: RequestHandlerContext,
+    request: KibanaRequest,
+    response: KibanaResponseFactory
+  ) {
     try {
       const source = JSON.parse(fs.readFileSync(this.updateRegistry.file, 'utf8'));
       if (source.installationDate && source.lastRestart) {
@@ -901,7 +963,7 @@ export class WazuhApiCtrl {
           body: {
             installationDate: source.installationDate,
             lastRestart: source.lastRestart,
-          }
+          },
         });
       } else {
         throw new Error('Could not fetch wazuh-version registry');
@@ -924,24 +986,23 @@ export class WazuhApiCtrl {
    * @param {Object} response
    * @returns {Object} extensions object or ErrorResponse
    */
-  async setExtensions(context: RequestHandlerContext, request: KibanaRequest, response: KibanaResponseFactory) {
+  async setExtensions(
+    context: RequestHandlerContext,
+    request: KibanaRequest,
+    response: KibanaResponseFactory
+  ) {
     try {
       const { id, extensions } = request.body;
       // Update cluster information in the wazuh-registry.json
       await this.updateRegistry.updateAPIExtensions(id, extensions);
       return response.ok({
         body: {
-          statusCode: 200
-        }
+          statusCode: 200,
+        },
       });
     } catch (error) {
       log('wazuh-api:setExtensions', error.message || error);
-      return ErrorResponse(
-        error.message || 'Could not set extensions',
-        4001,
-        500,
-        response
-      );
+      return ErrorResponse(error.message || 'Could not set extensions', 4001, 500, response);
     }
   }
 
@@ -952,15 +1013,17 @@ export class WazuhApiCtrl {
    * @param {Object} response
    * @returns {Object} extensions object or ErrorResponse
    */
-  getExtensions(context: RequestHandlerContext, request: KibanaRequest, response: KibanaResponseFactory) {
+  getExtensions(
+    context: RequestHandlerContext,
+    request: KibanaRequest,
+    response: KibanaResponseFactory
+  ) {
     try {
-      const source = JSON.parse(
-        fs.readFileSync(this.updateRegistry.file, 'utf8')
-      );
+      const source = JSON.parse(fs.readFileSync(this.updateRegistry.file, 'utf8'));
       return response.ok({
         body: {
-          extensions: (source.hosts[request.params.id] || {}).extensions || {}
-        }
+          extensions: (source.hosts[request.params.id] || {}).extensions || {},
+        },
       });
     } catch (error) {
       log('wazuh-api:getExtensions', error.message || error);
@@ -980,14 +1043,18 @@ export class WazuhApiCtrl {
    * @param {Object} response
    * @returns {Object} setup info or ErrorResponse
    */
-  async getSetupInfo(context: RequestHandlerContext, request: KibanaRequest, response: KibanaResponseFactory) {
+  async getSetupInfo(
+    context: RequestHandlerContext,
+    request: KibanaRequest,
+    response: KibanaResponseFactory
+  ) {
     try {
       const source = JSON.parse(fs.readFileSync(this.updateRegistry.file, 'utf8'));
       return response.ok({
         body: {
           statusCode: 200,
-          data: !Object.values(source).length ? '' : source
-        }
+          data: !Object.values(source).length ? '' : source,
+        },
       });
     } catch (error) {
       log('wazuh-api:getSetupInfo', error.message || error);
@@ -1007,9 +1074,13 @@ export class WazuhApiCtrl {
    * @param {Object} response
    * @returns {Object} Basic syscollector information
    */
-  async getSyscollector(context: RequestHandlerContext, request: KibanaRequest, response: KibanaResponseFactory) {
+  async getSyscollector(
+    context: RequestHandlerContext,
+    request: KibanaRequest,
+    response: KibanaResponseFactory
+  ) {
     try {
-      const apiHostID = getCookieValueByName(request.headers.cookie,'wz-api');
+      const apiHostID = getCookieValueByName(request.headers.cookie, 'wz-api');
       if (!request.params || !apiHostID || !request.params.agent) {
         throw new Error('Agent ID and API ID are required');
       }
@@ -1017,11 +1088,21 @@ export class WazuhApiCtrl {
       const { agent } = request.params;
 
       const data = await Promise.all([
-        context.wazuh.api.client.asInternalUser.request('GET', `/syscollector/${agent}/hardware`, {}, { apiHostID }),
-        context.wazuh.api.client.asInternalUser.request('GET', `/syscollector/${agent}/os`, {}, { apiHostID })
+        context.wazuh.api.client.asInternalUser.request(
+          'GET',
+          `/syscollector/${agent}/hardware`,
+          {},
+          { apiHostID }
+        ),
+        context.wazuh.api.client.asInternalUser.request(
+          'GET',
+          `/syscollector/${agent}/os`,
+          {},
+          { apiHostID }
+        ),
       ]);
 
-      const result = data.map(item => (item.data || {}).data || []);
+      const result = data.map((item) => (item.data || {}).data || []);
       const [hardwareResponse, osResponse] = result;
 
       // Fill syscollector object
@@ -1037,7 +1118,7 @@ export class WazuhApiCtrl {
       };
 
       return response.ok({
-        body: syscollector
+        body: syscollector,
       });
     } catch (error) {
       log('wazuh-api:getSyscollector', error.message || error);
