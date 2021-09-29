@@ -1,8 +1,8 @@
 {
   "name": "wazuh",
-  "version": "4.2.1",
-  "revision": "4202-1-ehl",
-  "code": "4202-1-ehl",
+  "version": "4.2.2",
+  "revision": "4203-1-ehl",
+  "code": "4203-1-ehl",
   "kibana": {
     "version": "7.10.2"
   },
