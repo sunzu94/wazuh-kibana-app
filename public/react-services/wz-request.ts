@@ -54,6 +54,8 @@ export class WzRequest {
       if (data['error']) {
         throw new Error(data['error']);
       }
+      console.log("[CLIENT] - generic request: ");
+      console.log(payload);
       return Promise.resolve(data);
     } catch (error) {
       OdfeUtils.checkOdfeSessionExpired(error);
