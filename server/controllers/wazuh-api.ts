@@ -755,8 +755,6 @@ export class WazuhApiCtrl {
       //Path doesn't start with '/'
       return ErrorResponse('Request path is not valid.', 3015, 400, response);
     } else {
-      console.log('[SERVER] - make request: ');
-      console.log(request);
       return this.makeRequest(
         context,
         request.body.method,
