@@ -79,9 +79,11 @@ app.run([
     app.$injector = _$injector;
 
     // Set currentSecurity platform in Redux when app starts.
-    checkCurrentSecurityPlatform().then((item) => {
-      store.dispatch(updateCurrentPlatform(item))
-    }).catch(() => {})
+    checkCurrentSecurityPlatform()
+      .then((item) => {
+        store.dispatch(updateCurrentPlatform(item));
+      })
+      .catch(() => {});
 
     // Init the process of refreshing the user's token when app start.
     checkPluginVersion().finally(WzAuthentication.refresh);
@@ -101,6 +103,8 @@ app.run(function ($rootElement) {
       <react-component name="ToastNotificationsModal" props=""></react-component>
     </div>`);
 
+  const urlToLogout = window.location.origin + '/logout';
+
   // Bind deleteExistentToken on Log out component.
   $('.euiHeaderSectionItem__button').on('mouseleave', function () {
     // opendistro
@@ -108,8 +112,13 @@ app.run(function ($rootElement) {
       WzAuthentication.deleteExistentToken();
     });
     // x-pack
-    $('a:contains(Log out)').on('click', function () {
-      WzAuthentication.deleteExistentToken();
+    $('a:contains(Log out)').on('click', function (event) {
+      // Override href's behaviour and navigate programatically
+      // to 'logout' once the token has been deleted.
+      event.preventDefault();
+      WzAuthentication.deleteExistentToken().then(() => {
+        window.location.replace(urlToLogout);
+      });
     });
   });
 });
