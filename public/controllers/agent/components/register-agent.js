@@ -272,7 +272,6 @@ export class RegisterAgent extends Component {
 
   optionalDeploymentVariables() {
     let deployment = `WAZUH_MANAGER='${this.state.serverAddress}' `;
-
     if (this.state.selectedOS == 'win') {
       deployment += `WAZUH_REGISTRATION_SERVER='${this.state.serverAddress}' `;
     }
@@ -291,7 +290,7 @@ export class RegisterAgent extends Component {
 
     // macos doesnt need = param
     if (this.state.selectedOS === 'macos') {
-      return deployment.replaceAll('=', ' ');
+      return deployment.replace(/=/g, ' ');
     }
 
     return deployment;
@@ -418,13 +417,13 @@ export class RegisterAgent extends Component {
     };
     const customTexts = {
       rpmText: `sudo ${this.optionalDeploymentVariables()}yum install ${this.optionalPackages()}`,
-      debText: `curl -so wazuh-agent.deb ${this.optionalPackages()} && sudo ${this.optionalDeploymentVariables()}dpkg -i ./wazuh-agent.deb`,
-      macosText: `curl -so wazuh-agent.pkg https://packages.wazuh.com/4.x/macos/wazuh-agent-${
+      debText: `curl -so wazuh-agent-${this.state.wazuhVersion}.deb ${this.optionalPackages()} && sudo ${this.optionalDeploymentVariables()}dpkg -i ./wazuh-agent-${this.state.wazuhVersion}.deb`,
+      macosText: `curl -so wazuh-agent-${this.state.wazuhVersion}.pkg https://packages.wazuh.com/4.x/macos/wazuh-agent-${
         this.state.wazuhVersion
-      }-1.pkg && sudo launchctl setenv ${this.optionalDeploymentVariables()}&& sudo installer -pkg ./wazuh-agent.pkg -target /`,
+      }-1.pkg && sudo launchctl setenv ${this.optionalDeploymentVariables()}&& sudo installer -pkg ./wazuh-agent-${this.state.wazuhVersion}.pkg -target /`,
       winText: `Invoke-WebRequest -Uri https://packages.wazuh.com/4.x/windows/wazuh-agent-${
         this.state.wazuhVersion
-      }-1.msi -OutFile wazuh-agent.msi; ./wazuh-agent.msi /q ${this.optionalDeploymentVariables()}`,
+      }-1.msi -OutFile wazuh-agent-${this.state.wazuhVersion}.msi; ./wazuh-agent-${this.state.wazuhVersion}.msi /q ${this.optionalDeploymentVariables()}`,
     };
 
     const field = `${this.state.selectedOS}Text`;
@@ -524,6 +523,7 @@ export class RegisterAgent extends Component {
         children: (
           <EuiButtonGroup
             color="primary"
+            legend="Choose the Operating system"
             options={osButtons}
             idSelected={this.state.selectedOS}
             onChange={(os) => this.selectOS(os)}
@@ -537,6 +537,7 @@ export class RegisterAgent extends Component {
               children: (
                 <EuiButtonGroup
                   color="primary"
+                  legend="Choose the version"
                   options={versionButtonsCentos}
                   idSelected={this.state.selectedVersion}
                   onChange={(version) => this.setVersion(version)}
@@ -552,6 +553,7 @@ export class RegisterAgent extends Component {
               children: (
                 <EuiButtonGroup
                   color="primary"
+                  legend="Choose the architecture"
                   options={this.state.architectureCentos5}
                   idSelected={this.state.selectedArchitecture}
                   onChange={(architecture) => this.setArchitecture(architecture)}
@@ -568,6 +570,7 @@ export class RegisterAgent extends Component {
               children: (
                 <EuiButtonGroup
                   color="primary"
+                  legend="Choose the architecture"
                   options={this.state.architectureButtons}
                   idSelected={this.state.selectedArchitecture}
                   onChange={(architecture) => this.setArchitecture(architecture)}
